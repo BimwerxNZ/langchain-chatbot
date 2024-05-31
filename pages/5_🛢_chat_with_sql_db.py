@@ -4,7 +4,6 @@ import streamlit as st
 from pathlib import Path
 from sqlalchemy import create_engine
 
-# Import the appropriate Groq client and LangChain components
 from langchain_groq import ChatGroq  # Hypothetical import, replace with actual if available
 from langchain_community.agent_toolkits import create_sql_agent
 from langchain_community.callbacks import StreamlitCallbackHandler
@@ -19,7 +18,7 @@ class SqlChatbot:
 
     def __init__(self):
         self.groq_model = utils.configure_groq()  # Update to use Groq configuration
- 
+    
     def setup_db(self, db_uri):
         if db_uri == 'USE_SAMPLE_DB':
             db_filepath = (Path(__file__).parent.parent / "assets/Chinook.db").absolute()
@@ -28,11 +27,11 @@ class SqlChatbot:
             db = SQLDatabase(create_engine("sqlite:///", creator=creator))
         else:
             db = SQLDatabase.from_uri(database_uri=db_uri)
-     
+        
         with st.sidebar.expander('Database tables', expanded=True):
             st.info('\n- '+'\n- '.join(db.get_usable_table_names()))
         return db
- 
+    
     def setup_sql_agent(self, db):
         llm = ChatGroq(model_name=self.groq_model, temperature=0, streaming=True)  # Adjust if needed
 
@@ -41,7 +40,7 @@ class SqlChatbot:
             db=db,
             top_k=10,
             verbose=True,
-            agent_type="groq-tools",  # Update the agent type if needed
+            agent_type="zero-shot-react-description",  # Use a supported agent type
             handle_parsing_errors=True,
             handle_sql_errors=True
         )
@@ -57,7 +56,7 @@ class SqlChatbot:
             options=radio_opt
         )
         if radio_opt.index(selected_opt) == 1:
-            with st.sidebar.popover(':orange[⚠️ Security note]', use_container_width=True):
+            with st.sidebar.expander(':orange[⚠️ Security note]', use_container_width=True):
                 warning = "Building Q&A systems of SQL databases requires executing model-generated SQL queries. There are inherent risks in doing this. Make sure that your database connection permissions are always scoped as narrowly as possible for your chain/agent's needs.\n\nFor more on general security best practices - [read this](https://python.langchain.com/docs/security)."
                 st.warning(warning)
             db_uri = st.sidebar.text_input(
@@ -66,11 +65,11 @@ class SqlChatbot:
             )
         else:
             db_uri = 'USE_SAMPLE_DB'
-     
+        
         if not db_uri:
             st.error("Please enter database URI to continue!")
             st.stop()
-     
+        
         db = self.setup_db(db_uri)
         agent = self.setup_sql_agent(db)
 
@@ -82,17 +81,20 @@ class SqlChatbot:
 
             with st.chat_message("assistant"):
                 st_cb = StreamlitCallbackHandler(st.container())
-                result = agent.invoke(
-                    {"input": user_query},
-                    {"callbacks": [st_cb]}
-                )
-                response = result["output"]
-                st.session_state.messages.append({"role": "assistant", "content": response})
-                st.write(response)
+                try:
+                    result = agent.invoke(
+                        {"input": user_query},
+                        {"callbacks": [st_cb]}
+                    )
+                    print(f"Result type: {type(result)}, Result: {result}")  # Debug print
+                    response = result.get("output", "No response")  # Ensure result is a dict
+                    print(f"Response type: {type(response)}, Response: {response}")  # Debug print
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    st.write(response)
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
+                    print(f"Error: {e}")  # Debug print
 
 if __name__ == "__main__":
-    obj = SqlChatbot()
-    obj.main()
-
     obj = SqlChatbot()
     obj.main()
