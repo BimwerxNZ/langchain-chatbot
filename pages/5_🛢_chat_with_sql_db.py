@@ -4,7 +4,8 @@ import streamlit as st
 from pathlib import Path
 from sqlalchemy import create_engine
 
-from langchain_openai import ChatOpenAI
+# Import the appropriate Groq client and LangChain components
+from langchain_groq import ChatGroq  # Hypothetical import, replace with actual if available
 from langchain_community.agent_toolkits import create_sql_agent
 from langchain_community.callbacks import StreamlitCallbackHandler
 from langchain_community.utilities.sql_database import SQLDatabase
@@ -17,9 +18,9 @@ st.write('[![view source code ](https://img.shields.io/badge/view_source_code-gr
 class SqlChatbot:
 
     def __init__(self):
-        self.openai_model = utils.configure_openai()
-    
-    def setup_db(_self, db_uri):
+        self.groq_model = utils.configure_groq()  # Update to use Groq configuration
+ 
+    def setup_db(self, db_uri):
         if db_uri == 'USE_SAMPLE_DB':
             db_filepath = (Path(__file__).parent.parent / "assets/Chinook.db").absolute()
             db_uri = f"sqlite:////{db_filepath}"
@@ -27,30 +28,30 @@ class SqlChatbot:
             db = SQLDatabase(create_engine("sqlite:///", creator=creator))
         else:
             db = SQLDatabase.from_uri(database_uri=db_uri)
-        
+     
         with st.sidebar.expander('Database tables', expanded=True):
             st.info('\n- '+'\n- '.join(db.get_usable_table_names()))
         return db
-    
-    def setup_sql_agent(_self, db):
-        llm = ChatOpenAI(model_name=_self.openai_model, temperature=0, streaming=True)
+ 
+    def setup_sql_agent(self, db):
+        llm = ChatGroq(model_name=self.groq_model, temperature=0, streaming=True)  # Adjust if needed
 
         agent = create_sql_agent(
             llm=llm,
             db=db,
             top_k=10,
             verbose=True,
-            agent_type="openai-tools",
+            agent_type="groq-tools",  # Update the agent type if needed
             handle_parsing_errors=True,
             handle_sql_errors=True
         )
         return agent
 
-    @utils.enable_chat_history
+    @utils.enable_chat_history  # Ensure this decorator is updated to handle Groq
     def main(self):
 
         # User inputs
-        radio_opt = ['Use sample db - Chinook.db','Connect to your SQL db']
+        radio_opt = ['Use sample db - Chinook.db', 'Connect to your SQL db']
         selected_opt = st.sidebar.radio(
             label='Choose suitable option',
             options=radio_opt
@@ -65,11 +66,11 @@ class SqlChatbot:
             )
         else:
             db_uri = 'USE_SAMPLE_DB'
-        
+     
         if not db_uri:
             st.error("Please enter database URI to continue!")
             st.stop()
-        
+     
         db = self.setup_db(db_uri)
         agent = self.setup_sql_agent(db)
 
@@ -90,5 +91,8 @@ class SqlChatbot:
                 st.write(response)
 
 if __name__ == "__main__":
+    obj = SqlChatbot()
+    obj.main()
+
     obj = SqlChatbot()
     obj.main()
