@@ -64,3 +64,4 @@ def configure_groq():
         st.error("Something went wrong. Please try again later.")
         st.stop()
     return model
+
