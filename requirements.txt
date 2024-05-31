@@ -9,3 +9,4 @@ pypdf==4.2.0
 sentence-transformers==2.7.0
 docarray==0.40.0
 SQLAlchemy==2.0.29
+groq

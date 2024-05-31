@@ -2,7 +2,8 @@ import utils
 import streamlit as st
 from streaming import StreamHandler
 
-from langchain_openai import ChatOpenAI
+# Import the appropriate Groq client and LangChain components
+from langchain_groq import ChatGroq  # Hypothetical import, replace with actual if available
 from langchain.chains import ConversationChain
 
 st.set_page_config(page_title="Chatbot", page_icon="💬")
@@ -13,14 +14,14 @@ st.write('[![view source code ](https://img.shields.io/badge/view_source_code-gr
 class BasicChatbot:
 
     def __init__(self):
-        self.openai_model = utils.configure_openai()
-    
+        self.groq_model = utils.configure_groq()  # Update to use Groq configuration
+ 
     def setup_chain(self):
-        llm = ChatOpenAI(model_name=self.openai_model, temperature=0, streaming=True)
+        llm = ChatGroq(model_name=self.groq_model, temperature=0, streaming=True)  # Adjust if needed
         chain = ConversationChain(llm=llm, verbose=True)
         return chain
-    
-    @utils.enable_chat_history
+ 
+    @utils.enable_chat_history  # Ensure this decorator is updated to handle Groq
     def main(self):
         chain = self.setup_chain()
         user_query = st.chat_input(placeholder="Ask me anything!")
@@ -29,7 +30,7 @@ class BasicChatbot:
             with st.chat_message("assistant"):
                 st_cb = StreamHandler(st.empty())
                 result = chain.invoke(
-                    {"input":user_query},
+                    {"input": user_query},
                     {"callbacks": [st_cb]}
                 )
                 response = result["response"]
