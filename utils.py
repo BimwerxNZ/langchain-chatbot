@@ -1,14 +1,14 @@
 import os
-import openai
+import groq  # Import the Groq client library
 import random
 import streamlit as st
 from datetime import datetime
 
-#decorator
+# decorator
 def enable_chat_history(func):
-    if os.environ.get("OPENAI_API_KEY"):
+    if os.environ.get("GROQ_API_KEY"):
 
-        # to clear chat history after swtching chatbot
+        # to clear chat history after switching chatbot
         current_page = func.__qualname__
         if "current_page" not in st.session_state:
             st.session_state["current_page"] = current_page
@@ -20,7 +20,7 @@ def enable_chat_history(func):
             except:
                 pass
 
-        # to show chat history on ui
+        # to show chat history on UI
         if "messages" not in st.session_state:
             st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
         for msg in st.session_state["messages"]:
@@ -40,35 +40,35 @@ def display_msg(msg, author):
     st.session_state.messages.append({"role": author, "content": msg})
     st.chat_message(author).write(msg)
 
-def configure_openai():
-    openai_api_key = st.sidebar.text_input(
-        label="OpenAI API Key",
+def configure_groq():
+    groq_api_key = st.sidebar.text_input(
+        label="Groq API Key",
         type="password",
-        value=st.session_state['OPENAI_API_KEY'] if 'OPENAI_API_KEY' in st.session_state else '',
+        value=st.session_state['GROQ_API_KEY'] if 'GROQ_API_KEY' in st.session_state else '',
         placeholder="sk-..."
-        )
-    if openai_api_key:
-        st.session_state['OPENAI_API_KEY'] = openai_api_key
-        os.environ['OPENAI_API_KEY'] = openai_api_key
+    )
+    if groq_api_key:
+        st.session_state['GROQ_API_KEY'] = groq_api_key
+        os.environ['GROQ_API_KEY'] = groq_api_key
     else:
-        st.error("Please add your OpenAI API key to continue.")
-        st.info("Obtain your key from this link: https://platform.openai.com/account/api-keys")
+        st.error("Please add your Groq API key to continue.")
+        st.info("Obtain your key from the Groq platform.")
         st.stop()
 
-    model = "gpt-3.5-turbo"
+    model = "groq-model-name"  # Replace with the default Groq model name
     try:
-        client = openai.OpenAI()
-        available_models = [{"id": i.id, "created":datetime.fromtimestamp(i.created)} for i in client.models.list() if str(i.id).startswith("gpt")]
+        client = groq.Client(api_key=groq_api_key)
+        available_models = client.models.list()  # Adjust based on the Groq client library
         available_models = sorted(available_models, key=lambda x: x["created"])
         available_models = [i["id"] for i in available_models]
 
         model = st.sidebar.selectbox(
             label="Model",
             options=available_models,
-            index=available_models.index(st.session_state['OPENAI_MODEL']) if 'OPENAI_MODEL' in st.session_state else 0
+            index=available_models.index(st.session_state['GROQ_MODEL']) if 'GROQ_MODEL' in st.session_state else 0
         )
-        st.session_state['OPENAI_MODEL'] = model
-    except openai.AuthenticationError as e:
+        st.session_state['GROQ_MODEL'] = model
+    except groq.AuthenticationError as e:
         st.error(e.body["message"])
         st.stop()
     except Exception as e:
@@ -76,3 +76,28 @@ def configure_openai():
         st.error("Something went wrong. Please try again later.")
         st.stop()
     return model
+
+# Example function to use Groq API for generating a response
+def generate_response_groq(prompt):
+    client = groq.Client(api_key=os.environ.get("GROQ_API_KEY"))
+    model = st.session_state['GROQ_MODEL']
+    response = client.completions.create(
+        model=model,
+        prompt=prompt,
+        max_tokens=150  # Adjust as needed
+    )
+    return response.choices[0].text.strip()
+
+# Example Streamlit app using Groq API
+@enable_chat_history
+def chat():
+    st.title("Groq Chatbot")
+    prompt = st.text_input("You:", "")
+    if prompt:
+        response = generate_response_groq(prompt)
+        display_msg(prompt, "user")
+        display_msg(response, "assistant")
+
+if __name__ == "__main__":
+    configure_groq()
+    chat()
