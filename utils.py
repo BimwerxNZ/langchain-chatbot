@@ -33,7 +33,7 @@ def configure_groq():
         label="Groq API Key",
         type="password",
         value=st.session_state['GROQ_API_KEY'] if 'GROQ_API_KEY' in st.session_state else '',
-        placeholder="sk-..."
+        placeholder="gsk_-..."
     )
     if groq_api_key:
         st.session_state['GROQ_API_KEY'] = groq_api_key
@@ -43,25 +43,6 @@ def configure_groq():
         st.info("Obtain your key from the Groq platform.")
         st.stop()
 
-    model = "groq-model-name"  # Replace with the default Groq model name
-    try:
-        client = groq.Client(api_key=groq_api_key)
-        available_models = client.models.list()  # Adjust based on the Groq client library
-        available_models = sorted(available_models, key=lambda x: x["created"])
-        available_models = [i["id"] for i in available_models]
-
-        model = st.sidebar.selectbox(
-            label="Model",
-            options=available_models,
-            index=available_models.index(st.session_state['GROQ_MODEL']) if 'GROQ_MODEL' in st.session_state else 0
-        )
-        st.session_state['GROQ_MODEL'] = model
-    except groq.AuthenticationError as e:
-        st.error(e.body["message"])
-        st.stop()
-    except Exception as e:
-        print(e)
-        st.error("Something went wrong. Please try again later.")
-        st.stop()
+    model = "mixtral-8x7b-32768"  # Replace with the default Groq model name
+    
     return model
-
